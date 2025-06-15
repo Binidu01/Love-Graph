@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Animated Heart Equation</title>
+    <style>
+      /* reset & center */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #000;
+        color: #fff;
+        font-family: "Segoe UI", sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 2rem;
+        background: linear-gradient(90deg, #ff69b4, #ffa500);
+        -webkit-background-clip: text;
+        color: transparent;
+        margin-bottom: 0.5em;
+      }
+      #equation {
+        margin-top: 0.5em;
+        font-size: 1rem;
+        color: #da70d6;
+      }
+      #equation .kval {
+        color: #ffa500;
+        display: block;
+        text-align: center;
+      }
+      canvas {
+        background: #000;
+        border: 1px solid #444;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Heart Equation</h1>
+    <div id="equation">
+      y = |x|<sup>2/3</sup> + 0.9 sin(kx)√(3 − x²)
+      <span class="kval">k = 0.0</span>
+    </div>
+
+    <canvas id="cvs" width="800" height="600"></canvas>
+
+    <script>
+      // grab elements
+      const canvas = document.getElementById("cvs");
+      const ctx = canvas.getContext("2d");
+      const kvalEl = document.querySelector(".kval");
+
+      // Define sqrt(3) since Math.SQRT3 doesn't exist
+      const SQRT3 = Math.sqrt(3);
+
+      // canvas size & margins
+      const W = canvas.width,
+        H = canvas.height;
+      const margin = 60;
+
+      // domain & sampling
+      const xMin = -SQRT3,
+        xMax = SQRT3;
+      const yMin = -1,
+        yMax = 4;
+      const N = 400;
+      const xs = Array.from(
+        { length: N },
+        (_, i) => xMin + ((xMax - xMin) * i) / (N - 1)
+      );
+
+      // coordinate transforms
+      function x2px(x) {
+        return margin + ((x - xMin) / (xMax - xMin)) * (W - 2 * margin);
+      }
+      function y2px(y) {
+        // invert Y for canvas
+        return H - (margin + ((y - yMin) / (yMax - yMin)) * (H - 2 * margin));
+      }
+
+      // draw axes + arrowheads + ticks (without numerical values)
+      function drawAxes() {
+        // Main axes in light blue
+        ctx.strokeStyle = "#87CEFA";
+        ctx.lineWidth = 2;
+
+        // X-axis
+        const y0 = y2px(0);
+        ctx.beginPath();
+        ctx.moveTo(margin, y0);
+        ctx.lineTo(W - margin, y0);
+        // arrow
+        ctx.lineTo(W - margin - 10, y0 - 5);
+        ctx.moveTo(W - margin, y0);
+        ctx.lineTo(W - margin - 10, y0 + 5);
+        ctx.stroke();
+
+        // Y-axis
+        const x0 = x2px(0);
+        ctx.beginPath();
+        ctx.moveTo(x0, H - margin);
+        ctx.lineTo(x0, margin);
+        // arrow
+        ctx.lineTo(x0 - 5, margin + 10);
+        ctx.moveTo(x0, margin);
+        ctx.lineTo(x0 + 5, margin + 10);
+        ctx.stroke();
+
+        // Tick marks in white
+        ctx.fillStyle = "#FFFFFF";
+        for (let x = -1; x <= 1; x++) {
+          let px = x2px(x * SQRT3);
+          ctx.fillRect(px - 1, y0 - 4, 2, 8);
+        }
+        for (let y = -1; y <= 4; y++) {
+          let py = y2px(y);
+          ctx.fillRect(x0 - 4, py - 1, 8, 2);
+        }
+      }
+
+      // draw heart curve
+      function drawBars(k) {
+        // pink gradient
+        const grad = ctx.createLinearGradient(0, margin, 0, H - margin);
+        grad.addColorStop(0, "#FF69B4");
+        grad.addColorStop(1, "#FF1493");
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2;
+
+        // Draw the heart as a continuous curve
+        ctx.beginPath();
+        let firstPoint = true;
+        xs.forEach((x) => {
+          let y =
+            Math.pow(Math.abs(x), 2 / 3) +
+            0.9 * Math.sin(k * x) * Math.sqrt(3 - x * x);
+          let px = x2px(x),
+            py = y2px(y);
+
+          if (firstPoint) {
+            ctx.moveTo(px, py);
+            firstPoint = false;
+          } else {
+            ctx.lineTo(px, py);
+          }
+        });
+        ctx.stroke();
+      }
+
+      // full render
+      function render(k) {
+        ctx.clearRect(0, 0, W, H);
+        drawAxes();
+        drawBars(k);
+        kvalEl.textContent = "k = " + k.toFixed(1);
+      }
+
+      // animate k from 0 → 100
+      let k = 0;
+      function animate() {
+        render(k);
+        k += 0.1;
+        if (k > 100) k = 0;
+        requestAnimationFrame(animate);
+      }
+      animate();
+    </script>
+  </body>
+</html>
